@@ -58,8 +58,8 @@ class POMDP(object):
         a_best = None
         for child_act in obs_node.get_children():
             value = self.alphabeta_action_node(child_act, depth-1, alpha, beta)
-            if depth == 2:
-                print 'act: %s value: %s' % (str(child_act.a), str(value))
+            #if depth == 2:
+            #    print 'act: %s value: %s' % (str(child_act.a), str(value))
             if v < value:
                 a_best = child_act.a
             v = max(v, value)
@@ -231,18 +231,30 @@ class BattleshipProblem(POMDP):
         return self.board_is_done(b_s)
     
     def board_is_done(self, b_s):
-        # cost in Battleship is how many moves it took to sink the ship.
-        # guessed_states = np.zeros((5,3))
         p_s, guessed_set = b_s
         
-        return np.sum( (p_s == 1) + 0.0 ) == 1
+        certain = np.sum( (p_s == 1) + 0.0 ) == 1
         
-        p_sunk_ship = 0.0
-        for loc in guessed_set:
-            p_sunk_ship += p_s[loc[0]][loc[1]]
-            
-        # sunk the ship, for sure.
-        return abs(p_sunk_ship - 1.00) < .00001
+        if not certain:
+            return False
+        
+        # find the location of certainty in the belief
+        ship_r = None
+        ship_c = None
+        for r in range(len(p_s)):
+            for c in range(len(p_s[0])):
+                if p_s[r][c] > 0:
+                    ship_r = r
+                    ship_c = c+1 # tru coordinates
+        
+        # make sure the ship was sunk for the believed state
+        if (ship_r, ship_c-1) in guessed_set and \
+                (ship_r, ship_c  ) in guessed_set and \
+                (ship_r, ship_c+1) in guessed_set:
+            return True
+        
+        # More sinkin' to do
+        return False
     
     def get_uniform_belief(self):
         return (np.ones((5,3)) / np.sum(np.ones((5,3))), frozenset())
